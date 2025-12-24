@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Politician {
+  id                  String    @id @default(cuid())
+  slug                String    @unique
+  name                String
+  nameEn              String?
+  photoUrl            String?
+  party               Party?    @relation(fields: [partyId], references: [id])
+  partyId             String?
+  currentPosition     String?
+  currentPositionEn   String?
+  bio                 String?
+  bioEn               String?
+  twitterHandle       String?
+  facebookUrl         String?
+  instagramHandle     String?
+  websiteUrl          String?
+  isActive            Boolean   @default(true)
+  promises            Promise[]
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+model Party {
+  id            String          @id @default(cuid())
+  slug          String          @unique
+  name          String
+  nameEn        String?
+  shortName     String
+  logoUrl       String?
+  color         String
+  websiteUrl    String?
+  description   String?
+  descriptionEn String?
+  foundedYear   Int?
+  politicians   Politician[]
+  promises      Promise[]
+  positions     PartyPosition[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model Promise {
+  id              String          @id @default(cuid())
+  slug            String          @unique
+  summary         String
+  textOriginal    String
+  textEnglish     String?
+  sourceUrl       String
+  archiveUrl      String?
+  sourceType      String          @default("OTHER")
+  datePromised    DateTime
+  context         String?
+  politician      Politician?     @relation(fields: [politicianId], references: [id])
+  politicianId    String?
+  party           Party?          @relation(fields: [partyId], references: [id])
+  partyId         String?
+  topic           Topic           @relation(fields: [topicId], references: [id])
+  topicId         String
+  status          String          @default("NOT_YET_RATED")
+  statusHistory   StatusChange[]
+  evidence        Evidence[]
+  isFeatured      Boolean         @default(false)
+  viewCount       Int             @default(0)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model Topic {
+  id          String      @id @default(cuid())
+  slug        String      @unique
+  name        String
+  nameEn      String?
+  icon        String
+  promises    Promise[]
+  statements  Statement[]
+}
+
+model Evidence {
+  id          String    @id @default(cuid())
+  promise     Promise   @relation(fields: [promiseId], references: [id], onDelete: Cascade)
+  promiseId   String
+  type        String    @default("OTHER")
+  title       String
+  description String
+  sourceUrl   String
+  archiveUrl  String?
+  addedBy     User?     @relation(fields: [addedById], references: [id])
+  addedById   String?
+  createdAt   DateTime  @default(now())
+}
+
+model StatusChange {
+  id            String    @id @default(cuid())
+  promise       Promise   @relation(fields: [promiseId], references: [id], onDelete: Cascade)
+  promiseId     String
+  oldStatus     String
+  newStatus     String
+  justification String
+  changedBy     User?     @relation(fields: [changedById], references: [id])
+  changedById   String?
+  createdAt     DateTime  @default(now())
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String?
+  passwordHash  String?
+  role          String         @default("VIEWER")
+  statusChanges StatusChange[]
+  evidence      Evidence[]
+  tips          Tip[]
+  createdAt     DateTime       @default(now())
+}
+
+model Tip {
+  id                String    @id @default(cuid())
+  politicianName    String?
+  promiseText       String
+  sourceUrl         String?
+  submitterEmail    String?
+  additionalNotes   String?
+  isProcessed       Boolean   @default(false)
+  processedBy       User?     @relation(fields: [processedById], references: [id])
+  processedById     String?
+  processedAt       DateTime?
+  adminNotes        String?
+  createdAt         DateTime  @default(now())
+}
+
+// VAA (Voting Advice Application) Models
+model Statement {
+  id              String          @id @default(cuid())
+  slug            String          @unique
+  text            String          // Albanian text
+  textEn          String?         // English translation
+  textSr          String?         // Serbian translation
+  topic           Topic           @relation(fields: [topicId], references: [id])
+  topicId         String
+  order           Int             @default(0)
+  isActive        Boolean         @default(true)
+  partyPositions  PartyPosition[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model PartyPosition {
+  id              String    @id @default(cuid())
+  statement       Statement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+  statementId     String
+  party           Party     @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  partyId         String
+  position        String    // "AGREE" | "NEUTRAL" | "DISAGREE"
+  isAutoGenerated Boolean   @default(false)
+  justification   String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([statementId, partyId])
+}
