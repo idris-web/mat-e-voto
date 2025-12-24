@@ -1,6 +1,6 @@
 import { Link, useSearchParams, useOutletContext } from "react-router";
 import type { Route } from "./+types/compare";
-import { db } from "~/lib/db.server";
+import { getStatementsWithTopics, parties, topics, partyPositions } from "~/lib/data";
 import { Button } from "~/components/ui/button";
 import {
   Select,
@@ -22,7 +22,7 @@ export function meta({}: Route.MetaArgs) {
   return [{ title: "mat-e-voto" }];
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
+export function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const encodedData = url.searchParams.get("data");
 
@@ -37,27 +37,17 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const { answers } = decoded;
 
-  const [statements, parties, positions, topics] = await Promise.all([
-    db.statement.findMany({
-      where: { isActive: true },
-      orderBy: [{ topic: { name: "asc" } }, { order: "asc" }],
-      include: { topic: true },
-    }),
-    db.party.findMany({
-      orderBy: { name: "asc" },
-    }),
-    db.partyPosition.findMany(),
-    db.topic.findMany({
-      orderBy: { name: "asc" },
-    }),
-  ]);
+  const statements = getStatementsWithTopics().filter(s => s.isActive);
 
+  // Build position map: statementId -> partyId -> position
   const positionMap: Record<string, Record<string, string>> = {};
-  for (const pos of positions) {
-    if (!positionMap[pos.statementId]) {
-      positionMap[pos.statementId] = {};
+  for (const [partyId, positions] of Object.entries(partyPositions)) {
+    for (const [statementId, position] of Object.entries(positions)) {
+      if (!positionMap[statementId]) {
+        positionMap[statementId] = {};
+      }
+      positionMap[statementId][partyId] = position;
     }
-    positionMap[pos.statementId][pos.partyId] = pos.position;
   }
 
   return {

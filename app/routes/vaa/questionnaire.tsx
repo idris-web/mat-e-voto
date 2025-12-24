@@ -1,6 +1,6 @@
 import { useNavigate, useOutletContext } from "react-router";
 import type { Route } from "./+types/questionnaire";
-import { db } from "~/lib/db.server";
+import { getStatementsWithTopics } from "~/lib/data";
 import { Button } from "~/components/ui/button";
 import { Switch } from "~/components/ui/switch";
 import { Label } from "~/components/ui/label";
@@ -31,13 +31,8 @@ export function meta({}: Route.MetaArgs) {
   return [{ title: "mat-e-voto" }];
 }
 
-export async function loader({}: Route.LoaderArgs) {
-  const statements = await db.statement.findMany({
-    where: { isActive: true },
-    orderBy: [{ topic: { name: "asc" } }, { order: "asc" }],
-    include: { topic: true },
-  });
-
+export function loader({}: Route.LoaderArgs) {
+  const statements = getStatementsWithTopics().filter(s => s.isActive);
   return { statements };
 }
 

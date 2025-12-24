@@ -1,6 +1,6 @@
 import { Link, useSearchParams, useOutletContext } from "react-router";
 import type { Route } from "./+types/results";
-import { db } from "~/lib/db.server";
+import { statements as allStatements, parties, topics, getAllPositions } from "~/lib/data";
 import { Button } from "~/components/ui/button";
 import {
   RefreshCw,
@@ -26,7 +26,7 @@ export function meta({}: Route.MetaArgs) {
   return [{ title: "mat-e-voto" }];
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
+export function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const encodedData = url.searchParams.get("data");
 
@@ -41,30 +41,14 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const { answers, topicImportance } = decoded;
 
-  const [statements, parties, positions] = await Promise.all([
-    db.statement.findMany({
-      where: { isActive: true },
-      select: { id: true, topicId: true },
-    }),
-    db.party.findMany({
-      orderBy: { name: "asc" },
-    }),
-    db.partyPosition.findMany(),
-  ]);
-
-  const topics = await db.topic.findMany({
-    orderBy: { name: "asc" },
-  });
+  const statements = allStatements.filter(s => s.isActive).map(s => ({ id: s.id, topicId: s.topicId }));
+  const positions = getAllPositions();
 
   const input = prepareCalculationInput(
     answers as Record<string, UserAnswer>,
     topicImportance,
     statements,
-    positions.map((p) => ({
-      partyId: p.partyId,
-      statementId: p.statementId,
-      position: p.position,
-    }))
+    positions
   );
 
   const results = calculateMatches(input);

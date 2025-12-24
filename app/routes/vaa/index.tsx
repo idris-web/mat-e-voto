@@ -1,6 +1,6 @@
 import { Link, useOutletContext } from "react-router";
 import type { Route } from "./+types/index";
-import { db } from "~/lib/db.server";
+import { statements, parties } from "~/lib/data";
 import { Button } from "~/components/ui/button";
 import {
   ArrowRight,
@@ -25,12 +25,9 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
-export async function loader({}: Route.LoaderArgs) {
-  const [statementCount, partyCount] = await Promise.all([
-    db.statement.count({ where: { isActive: true } }),
-    db.party.count(),
-  ]);
-
+export function loader({}: Route.LoaderArgs) {
+  const statementCount = statements.filter(s => s.isActive).length;
+  const partyCount = parties.length;
   return { statementCount, partyCount };
 }
 

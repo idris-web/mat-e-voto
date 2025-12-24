@@ -11,7 +11,6 @@ import type { Route } from "./+types/root";
 import "./app.css";
 import { Header } from "~/components/layout/header";
 import { Footer } from "~/components/layout/footer";
-import { getUser } from "~/lib/auth.server";
 import { getTranslations, type Locale } from "~/locales";
 import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES } from "~/lib/constants";
 
@@ -28,9 +27,7 @@ export const links: Route.LinksFunction = () => [
   },
 ];
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const user = await getUser(request);
-
+export function loader({ request }: Route.LoaderArgs) {
   // Get locale from cookie or default
   const cookieHeader = request.headers.get("Cookie");
   let locale: Locale = DEFAULT_LANGUAGE;
@@ -44,7 +41,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const t = getTranslations(locale);
 
-  return { user, locale, t };
+  return { user: null, locale, t };
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
